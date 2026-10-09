@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Gaming Arena 🎮</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .graffiti-text {
+            font-family: 'Arial Black', Impact, sans-serif;
+            color: rgba(236, 72, 153, 0.15);
+            text-shadow: 
+                2px 2px 0px rgba(0, 0, 0, 0.9),
+                -2px -2px 0px rgba(168, 85, 247, 0.4),
+                0 0 20px rgba(236, 72, 153, 0.3);
+            transform: rotate(-5deg);
+            letter-spacing: 2px;
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-4 relative overflow-x-hidden">
+
+    <!-- ARRIÈRE-PLAN GRAFFITI -->
+    <div class="fixed inset-0 pointer-events-none flex items-center justify-center z-0 overflow-hidden">
+        <h1 class="graffiti-text text-5xl sm:text-7xl md:text-8xl font-black text-center uppercase px-4 leading-none">
+            Orion Nyx Rinkime
+        </h1>
+    </div>
+
+    <!-- CONTENEUR PRINCIPAL -->
+    <div class="w-full max-w-md bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 border border-slate-700 z-10 relative">
+        
+        <!-- HEADER -->
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-black text-emerald-400">🔥 WhatsApp Arena</h1>
+            <p id="user-display" class="text-sm text-slate-400 mt-1"></p>
+        </div>
+
+        <!-- 1. CONNEXION -->
+        <div id="screen-login" class="space-y-4">
+            <h2 class="text-lg font-bold text-center">Entre ton pseudo pour jouer</h2>
+            <input type="text" id="pseudo-input" placeholder="Ton pseudo WhatsApp..." 
+                class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-emerald-500 font-bold text-center text-lg">
+            <button onclick="login()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 font-bold rounded-xl transition shadow-lg shadow-emerald-500/30">
+                Entrer dans l'Arène 🚀
+            </button>
+        </div>
+
+        <!-- 2. MENU PRINCIPAL -->
+        <div id="screen-menu" class="hidden space-y-2.5">
+            <h2 class="text-base font-bold mb-2 text-center text-slate-300">Choisis ton défi</h2>
+            <button onclick="startQuiz()" class="w-full p-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold flex justify-between items-center transition text-sm">
+                <span>🧠 Quiz Flash (IA)</span>
+                <span>➔</span>
+            </button>
+            <button onclick="startCalcul()" class="w-full p-3 bg-teal-600 hover:bg-teal-700 rounded-xl font-bold flex justify-between items-center transition text-sm">
+                <span>🧮 Calcul Flash (15s)</span>
+                <span>➔</span>
+            </button>
+            <button onclick="startTrueFalse()" class="w-full p-3 bg-purple-600 hover:bg-purple-700 rounded-xl font-bold flex justify-between items-center transition text-sm">
+                <span>💡 Vrai ou Faux Express</span>
+                <span>➔</span>
+            </button>
+            <button onclick="startNombreMystere()" class="w-full p-3 bg-cyan-600 hover:bg-cyan-700 rounded-xl font-bold flex justify-between items-center transition text-sm">
+                <span>🎯 Nombre Mystère (1-100)</span>
+                <span>➔</span>
+            </button>
+            <button onclick="startReflex()" class="w-full p-3 bg-amber-600 hover:bg-amber-700 rounded-xl font-bold flex justify-between items-center transition text-sm">
+                <span>⚡ Défi Réflexes (Tap-tap)</span>
+                <span>➔</span>
+            </button>
+            <button onclick="startWordle()" class="w-full p-3 bg-rose-600 hover:bg-rose-700 rounded-xl font-bold flex justify-between items-center transition text-sm">
+                <span>🔤 Le Mot Mystère (IA)</span>
+                <span>➔</span>
+            </button>
+            <button onclick="showLeaderboard()" class="w-full p-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold flex justify-between items-center transition mt-2 text-sm">
+                <span>🏆 Voir le Classement</span>
+                <span>➔</span>
+            </button>
+        </div>
+
+        <!-- CHARGEMENT -->
+        <div id="screen-loading" class="hidden text-center py-12 space-y-4">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
+            <p id="loading-text" class="text-sm text-slate-300 font-medium">Génération d'un défi exclusif par l'IA...</p>
+        </div>
+
+        <!-- 3. QUIZ -->
+        <div id="screen-quiz" class="hidden space-y-4">
+            <div class="flex justify-between text-sm text-slate-400">
+                <span id="quiz-progress">Question 1/5</span>
+                <span id="quiz-score">Score: 0</span>
+            </div>
+            <h3 id="quiz-question" class="text-lg font-bold text-center min-h-[60px] flex items-center justify-center"></h3>
+            <div id="quiz-options" class="space-y-2"></div>
+        </div>
+
+        <!-- CALCUL FLASH -->
+        <div id="screen-calcul" class="hidden space-y-4">
+            <div class="flex justify-between text-sm text-slate-400">
+                <span id="calcul-timer">⏱️ 15s</span>
+                <span id="calcul-score">Score: 0</span>
+            </div>
+            <h3 id="calcul-question" class="text-2xl font-black text-center text-teal-400 py-6"></h3>
+            <div class="space-y-2">
+                <input type="number" id="calcul-input" placeholder="Ta réponse..." 
+                    class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-center font-bold text-lg">
+                <button onclick="submitCalcul()" class="w-full py-3 bg-teal-500 hover:bg-teal-600 font-bold rounded-xl transition">Valider</button>
+            </div>
+        </div>
+
+        <!-- VRAI OU FAUX -->
+        <div id="screen-tf" class="hidden space-y-4">
+            <div class="flex justify-between text-sm text-slate-400">
+                <span id="tf-progress">Affirmation 1/5</span>
+                <span id="tf-score">Score: 0</span>
+            </div>
+            <h3 id="tf-statement" class="text-base font-bold text-center min-h-[80px] flex items-center justify-center px-2"></h3>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="answerTF(true)" class="py-4 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-xl text-lg transition">VRAI ✅</button>
+                <button onclick="answerTF(false)" class="py-4 bg-rose-600 hover:bg-rose-700 font-bold rounded-xl text-lg transition">FAUX ❌</button>
+            </div>
+        </div>
+
+        <!-- NOMBRE MYSTÈRE -->
+        <div id="screen-nombre" class="hidden space-y-4 text-center">
+            <h3 class="text-lg font-bold">Devine le nombre (1 à 100)</h3>
+            <p id="nombre-indice" class="text-sm text-cyan-400 font-medium">Entre une proposition !</p>
+            <div class="space-y-2">
+                <input type="number" id="nombre-input" min="1" max="100" placeholder="Ex: 50" 
+                    class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-center font-bold text-lg">
+                <button onclick="submitNombre()" class="w-full py-3 bg-cyan-500 hover:bg-cyan-600 font-bold rounded-xl transition">Tester</button>
+            </div>
+            <button onclick="showMenu()" class="w-full py-2 bg-slate-700 rounded-xl font-bold text-xs mt-2">Abandonner</button>
+        </div>
+
+        <!-- RÉFLEXES -->
+        <div id="screen-reflex" class="hidden space-y-4 text-center">
+            <h3 class="text-lg font-bold">Tape le plus vite possible !</h3>
+            <p id="reflex-status" class="text-sm text-slate-400">Prépare-toi...</p>
+            <div id="reflex-box" onclick="hitReflex()" class="w-full h-48 bg-slate-700 rounded-xl flex items-center justify-center text-xl font-black cursor-pointer transition select-none">
+                EN ATTENTE...
+            </div>
+            <button onclick="showMenu()" class="w-full py-2 bg-slate-700 rounded-xl font-bold mt-4">Retour au menu</button>
+        </div>
+
+        <!-- MOT MYSTÈRE -->
+        <div id="screen-wordle" class="hidden space-y-4">
+            <div class="text-center">
+                <h3 class="text-lg font-bold">Mot Mystère</h3>
+                <p class="text-xs text-slate-400 mt-1">Indice : <span id="word-hint" class="text-emerald-400 font-bold"></span></p>
+            </div>
+            <div id="wordle-board" class="grid grid-cols-5 gap-2 max-w-[280px] mx-auto my-4"></div>
+            <div class="space-y-2">
+                <input type="text" id="wordle-input" maxlength="5" placeholder="5 lettres" 
+                    class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-center uppercase font-bold tracking-widest">
+                <button onclick="submitWordle()" class="w-full py-3 bg-rose-500 hover:bg-rose-600 font-bold rounded-xl transition">Valider</button>
+            </div>
+            <button onclick="showMenu()" class="w-full py-2 bg-slate-700 rounded-xl font-bold text-xs mt-2">Abandonner</button>
+        </div>
+
+        <!-- CLASSEMENT -->
+        <div id="screen-leaderboard" class="hidden space-y-4">
+            <h2 class="text-xl font-bold text-center mb-4">🏆 Tableau des Scores</h2>
+            <div id="leaderboard-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+            <button onclick="showMenu()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl transition mt-4">
+                Retour au menu
+            </button>
+        </div>
+
+    </div>
+
+    <!-- SCRIPT -->
+    <script>
+        const SUPABASE_URL = 'https://dtmrlccknudgyjtjdmza.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_TOExBTkog64ah8wn8Q2vtg_LheNQdBJ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = localStorage.getItem('whatsapp_arena_user') || '';
+
+        if (currentUser) {
+            document.getElementById('screen-login').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+            document.getElementById('user-display').innerText = `Connecté : ${currentUser}`;
+        }
+
+        function login() {
+            const pseudo = document.getElementById('pseudo-input').value.trim();
+            if (!pseudo) return alert('Entre un pseudo !');
+            currentUser = pseudo;
+            localStorage.setItem('whatsapp_arena_user', currentUser);
+            document.getElementById('screen-login').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+            document.getElementById('user-display').innerText = `Connecté : ${currentUser}`;
+        }
+
+        function showMenu() {
+            document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('screen-menu').classList.remove('hidden');
+        }
+
+        function showLoading(text) {
+            document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('loading-text').innerText = text;
+            document.getElementById('screen-loading').classList.remove('hidden');
+        }
+
+        async function saveScore(gameName, scoreValue) {
+            try {
+                await supabaseClient.from('scores').insert([{ pseudo: currentUser, game: gameName, score: scoreValue }]);
+            } catch (e) {
+                console.error("Erreur score", e);
+            }
+        }
+
+        async function callGemini(promptText) {
+            const { data, error } = await supabaseClient.functions.invoke('generate-ai', {
+                body: { prompt: promptText }
+            });
+            if (error) throw new Error(error.message);
+            if (data.error) throw new Error(data.error.message);
+            let rawText = data.candidates[0].content.parts[0].text;
+            return JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
+        }
+
+        // --- 1. QUIZ FLASH ---
+        let quizQuestions = [], currentQuizIndex = 0, currentQuizScore = 0;
+        async function startQuiz() {
+            showLoading("Génération d'un quiz inédit par l'IA...");
+            try {
+                const prompt = `Génère 5 questions de culture générale et pop-culture en français. Retourne un JSON strict sous forme de tableau : [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "Bonne réponse exacte"}]`;
+                quizQuestions = await callGemini(prompt);
+                currentQuizIndex = 0; currentQuizScore = 0;
+                document.getElementById('screen-loading').classList.add('hidden');
+                document.getElementById('screen-quiz').classList.remove('hidden');
+                loadQuizQuestion();
+            } catch (err) {
+                alert("Erreur : " + err.message); showMenu();
+            }
+        }
+
+        function loadQuizQuestion() {
+            if (currentQuizIndex >= quizQuestions.length) {
+                saveScore('Quiz Flash', currentQuizScore);
+                alert(`Quiz terminé ! Score : ${currentQuizScore}/${quizQuestions.length}`);
+                showMenu(); return;
+            }
+            const q = quizQuestions[currentQuizIndex];
+            document.getElementById('quiz-progress').innerText = `Question ${currentQuizIndex + 1}/${quizQuestions.length}`;
+            document.getElementById('quiz-score').innerText = `Score: ${currentQuizScore}`;
+            document.getElementById('quiz-question').innerText = q.question;
+            const container = document.getElementById('quiz-options');
+            container.innerHTML = '';
+            [...q.options].sort(() => 0.5 - Math.random()).forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full p-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-left transition text-sm';
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    if (opt.trim().toLowerCase() === q.answer.trim().toLowerCase()) currentQuizScore++;
+                    currentQuizIndex++; loadQuizQuestion();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        // --- 2. CALCUL FLASH ---
+        let calculScore = 0, calculTimerInterval, timeLeft = 15, currentAnswer = 0;
+        function startCalcul() {
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-calcul').classList.remove('hidden');
+            calculScore = 0; timeLeft = 15;
+            document.getElementById('calcul-score').innerText = `Score: 0`;
+            nextCalcul();
+            calculTimerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('calcul-timer').innerText = `⏱️ ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(calculTimerInterval);
+                    saveScore('Calcul Flash', calculScore);
+                    alert(`Temps écoulé ! Score final : ${calculScore} points`);
+                    showMenu();
+                }
+            }, 1000);
+        }
+
+        function nextCalcul() {
+            const ops = ['+', '-', '*'];
+            const op = ops[Math.floor(Math.random() * ops.length)];
+            let n1 = Math.floor(Math.random() * 20) + 1;
+            let n2 = Math.floor(Math.random() * 20) + 1;
+            if (op === '-') { if (n1 < n2) [n1, n2] = [n2, n1]; }
+            if (op === '*') { n1 = Math.floor(Math.random() * 10) + 1; n2 = Math.floor(Math.random() * 10) + 1; }
+            currentAnswer = eval(`${n1} ${op} ${n2}`);
+            document.getElementById('calcul-question').innerText = `${n1} ${op.replace('*', '×')} ${n2} = ?`;
+            document.getElementById('calcul-input').value = '';
+            document.getElementById('calcul-input').focus();
+        }
+
+        function submitCalcul() {
+            const val = parseInt(document.getElementById('calcul-input').value);
+            if (val === currentAnswer) {
+                calculScore++;
+                document.getElementById('calcul-score').innerText = `Score: ${calculScore}`;
+            }
+            nextCalcul();
+        }
+
+        // --- 3. VRAI OU FAUX ---
+        let tfList = [], tfIndex = 0, tfScore = 0;
+        async function startTrueFalse() {
+            showLoading("Génération des faits insolites...");
+            try {
+                const prompt = `Génère 5 affirmations (mélange de vraies et fausses) insolites ou de culture générale en français. Retourne un JSON strict sous forme de tableau : [{"statement": "...", "isTrue": true}]`;
+                tfList = await callGemini(prompt);
+                tfIndex = 0; tfScore = 0;
+                document.getElementById('screen-loading').classList.add('hidden');
+                document.getElementById('screen-tf').classList.remove('hidden');
+                loadTF();
+            } catch (err) {
+                alert("Erreur : " + err.message); showMenu();
+            }
+        }
+
+        function loadTF() {
+            if (tfIndex >= tfList.length) {
+                saveScore('Vrai ou Faux', tfScore);
+                alert(`Partie terminée ! Score : ${tfScore}/${tfList.length}`);
+                showMenu(); return;
+            }
+            const item = tfList[tfIndex];
+            document.getElementById('tf-progress').innerText = `Affirmation ${tfIndex + 1}/${tfList.length}`;
+            document.getElementById('tf-score').innerText = `Score: ${tfScore}`;
+            document.getElementById('tf-statement').innerText = item.statement;
+        }
+
+        function answerTF(userChoice) {
+            if (userChoice === tfList[tfIndex].isTrue) tfScore++;
+            tfIndex++; loadTF();
+        }
+
+        // --- 4. NOMBRE MYSTÈRE ---
+        let targetNumber = 0, nombreTries = 0;
+        function startNombreMystere() {
+            targetNumber = Math.floor(Math.random() * 100) + 1;
+            nombreTries = 0;
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-nombre').classList.remove('hidden');
+            document.getElementById('nombre-indice').innerText = "Devine un nombre entre 1 et 100";
+            document.getElementById('nombre-input').value = '';
+        }
+
+        function submitNombre() {
+            const val = parseInt(document.getElementById('nombre-input').value);
+            if (isNaN(val)) return alert("Entre un nombre valide !");
+            nombreTries++;
+            const indice = document.getElementById('nombre-indice');
+            if (val === targetNumber) {
+                alert(`Bravo ! Trouvé en ${nombreTries} essais ! 🎉`);
+                saveScore('Nombre Mystère', Math.max(10, 110 - (nombreTries * 10)));
+                showMenu();
+            } else if (val < targetNumber) {
+                indice.innerText = "📈 C'est PLUS !";
+            } else {
+                indice.innerText = "📉 C'est MOINS !";
+            }
+            document.getElementById('nombre-input').value = '';
+        }
+
+        // --- 5. DÉFIB RÉFLEXES (TAP-TAP) ---
+        let reflexTimer, startTime, clicksCount = 0;
+        function startReflex() {
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-reflex').classList.remove('hidden');
+            const box = document.getElementById('reflex-box');
+            box.className = "w-full h-48 bg-red-600 rounded-xl flex items-center justify-center text-xl font-black cursor-pointer transition select-none";
+            box.innerText = "ATTENDS LE VERT...";
+            document.getElementById('reflex-status').innerText = "Ne clique pas trop tôt !";
+            clicksCount = 0;
+            const randomTime = Math.random() * 3000 + 1500;
+            reflexTimer = setTimeout(() => {
+                box.className = "w-full h-48 bg-emerald-500 hover:bg-emerald-600 rounded-xl flex items-center justify-center text-xl font-black cursor-pointer transition select-none animate-pulse";
+                box.innerText = "CLIQUE VITE !";
+                startTime = Date.now();
+                clicksCount = 1;
+            }, randomTime);
+        }
+
+        function hitReflex() {
+            const box = document.getElementById('reflex-box');
+            if (clicksCount === 0) {
+                clearTimeout(reflexTimer);
+                box.className = "w-full h-48 bg-rose-800 rounded-xl flex items-center justify-center text-xl font-black cursor-pointer transition select-none";
+                box.innerText = "FAUX DÉPART ! ❌";
+                setTimeout(showMenu, 1500);
+            } else if (clicksCount === 1) {
+                const reactionTime = Date.now() - startTime;
+                box.className = "w-full h-48 bg-slate-700 rounded-xl flex items-center justify-center text-xl font-black cursor-pointer transition select-none";
+                box.innerText = `${reactionTime} ms ! ⚡`;
+                saveScore('Réflexes (ms)', reactionTime);
+                clicksCount = 2;
+                setTimeout(showMenu, 2000);
+            }
+        }
+
+        // --- 6. MOT MYSTÈRE ---
+        let targetWord = "TABLE", currentAttempt = 0;
+        async function startWordle() {
+            showLoading("Recherche d'un mot mystère par l'IA...");
+            try {
+                const prompt = `Génère un mot en français exact de 5 lettres (sans accents, en majuscules) et un indice court et marrant. Retourne un JSON strict : {"word": "MAISON", "hint": "Lieu de vie"}`;
+                const res = await callGemini(prompt);
+                targetWord = res.word.toUpperCase();
+                document.getElementById('word-hint').innerText = res.hint;
+                currentAttempt = 0;
+                document.getElementById('screen-loading').classList.add('hidden');
+                document.getElementById('screen-wordle').classList.remove('hidden');
+                const board = document.getElementById('wordle-board');
+                board.innerHTML = '';
+                for(let i=0; i<25; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = "w-12 h-12 bg-slate-900 border border-slate-700 rounded-lg flex items-center justify-center text-xl font-bold uppercase";
+                    board.appendChild(cell);
+                }
+            } catch (err) {
+                alert("Erreur : " + err.message); showMenu();
+            }
+        }
+
+        function submitWordle() {
+            const input = document.getElementById('wordle-input');
+            const val = input.value.toUpperCase().trim();
+            if(val.length !== 5) return alert("Le mot doit faire 5 lettres !");
+            if(val === targetWord) {
+                alert("Bravo ! Tu as trouvé le mot mystère ! 🎉");
+                saveScore('Mot Mystère', 100 - (currentAttempt * 15));
+                showMenu();
+            } else {
+                currentAttempt++;
+                alert(`Raté ! Essai ${currentAttempt}/5`);
+                if(currentAttempt >= 5) {
+                    alert(`Perdu ! Le mot c'était : ${targetWord}`);
+                    showMenu();
+                }
+            }
+            input.value = '';
+        }
+
+        // --- CLASSEMENT GLOBAL ---
+        async function showLeaderboard() {
+            showLoading("Récupération du classement...");
+            document.getElementById('screen-loading').classList.add('hidden');
+            document.getElementById('screen-leaderboard').classList.remove('hidden');
+            const listContainer = document.getElementById('leaderboard-list');
+            listContainer.innerHTML = '<p class="text-center text-slate-400">Chargement...</p>';
+            try {
+                const { data, error } = await supabaseClient.from('scores').select('*').order('score', { ascending: false }).limit(10);
+                listContainer.innerHTML = '';
+                if(error || !data || data.length === 0) {
+                    listContainer.innerHTML = '<p class="text-center text-slate-400">Aucun score pour l\'instant.</p>';
+                    return;
+                }
+                data.forEach((row, index) => {
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-700 text-sm";
+                    item.innerHTML = `<span>#${index+1} <b>${row.pseudo}</b> <span class="text-xs text-slate-400">(${row.game})</span></span> <span class="text-emerald-400 font-bold">${row.score} pts</span>`;
+                    listContainer.appendChild(item);
+                });
+            } catch (e) {
+                listContainer.innerHTML = '<p class="text-center text-rose-400">Erreur de chargement du classement.</p>';
+            }
+        }
+    </script>
+</body>
+</html>
