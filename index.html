@@ -69,6 +69,10 @@
                 <span>🧠 Quiz Flash (IA)</span>
                 <span>➔</span>
             </button>
+            <button onclick="openTruthOrDareSetup()" class="w-full p-3 bg-pink-600 hover:bg-pink-700 rounded-xl font-bold flex justify-between items-center transition text-sm shadow-md">
+                <span>🔥 Action ou Vérité (Salle)</span>
+                <span>➔</span>
+            </button>
             <button onclick="startCalcul()" class="w-full p-3 bg-teal-600 hover:bg-teal-700 rounded-xl font-bold flex justify-between items-center transition text-sm">
                 <span>🧮 Calcul Flash (15s)</span>
                 <span>➔</span>
@@ -105,6 +109,55 @@
         <div id="screen-loading" class="hidden text-center py-12 space-y-4">
             <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
             <p id="loading-text" class="text-sm text-slate-300 font-medium">Génération d'un défi exclusif par l'IA...</p>
+        </div>
+
+        <!-- CONFIG ACTION OU VÉRITÉ (SALLE) -->
+        <div id="screen-tod-setup" class="hidden space-y-4">
+            <h2 class="text-lg font-bold text-center text-pink-400">🔥 Action ou Vérité</h2>
+            <p class="text-xs text-slate-400 text-center">Choisis l'ambiance de ta partie :</p>
+            
+            <div class="space-y-3">
+                <label class="block p-3 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer hover:border-pink-500 transition">
+                    <input type="radio" name="tod-mode" value="chill" checked class="mr-2 accent-pink-500">
+                    <span class="font-bold text-emerald-400">Ambiance Chill (16-)</span>
+                    <p class="text-xs text-slate-400 mt-1">Questions funs, drôles et légères pour tout le monde.</p>
+                </label>
+                
+                <label class="block p-3 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer hover:border-pink-500 transition">
+                    <input type="radio" name="tod-mode" value="hot" class="mr-2 accent-pink-500">
+                    <span class="font-bold text-rose-400">Ambiance Hot (16+) 🔥</span>
+                    <p class="text-xs text-slate-400 mt-1">Défis corsés, secrets et révélations piquantes entre amis.</p>
+                </label>
+            </div>
+
+            <button onclick="launchTruthOrDare()" class="w-full py-3 bg-pink-600 hover:bg-pink-700 font-bold rounded-xl transition shadow-lg shadow-pink-600/30">
+                Lancer la partie 🚀
+            </button>
+            <button onclick="showMenu()" class="w-full py-2 bg-slate-700 rounded-xl font-bold text-xs">Retour au menu</button>
+        </div>
+
+        <!-- JEU ACTION OU VÉRITÉ EN COURS -->
+        <div id="screen-tod-play" class="hidden space-y-4 text-center">
+            <div class="flex justify-between items-center text-xs text-slate-400">
+                <span id="tod-mode-badge" class="px-2 py-1 bg-pink-900/50 text-pink-300 rounded font-bold">CHILL</span>
+                <span id="tod-player" class="font-bold text-emerald-400">Tour de : Toi</span>
+            </div>
+            
+            <div id="tod-choice-box" class="space-y-3 py-4">
+                <h3 class="text-lg font-bold">Que choisis-tu ?</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="fetchTruthOrDare('verite')" class="py-6 bg-indigo-600 hover:bg-indigo-700 font-black rounded-xl text-lg transition shadow-lg">VÉRITÉ 🧠</button>
+                    <button onclick="fetchTruthOrDare('action')" class="py-6 bg-rose-600 hover:bg-rose-700 font-black rounded-xl text-lg transition shadow-lg">ACTION ⚡</button>
+                </div>
+            </div>
+
+            <div id="tod-result-box" class="hidden space-y-4 py-2">
+                <h3 id="tod-type-title" class="text-xl font-black text-pink-400 uppercase"></h3>
+                <p id="tod-prompt-text" class="text-base font-bold bg-slate-900 p-4 rounded-xl border border-slate-700 min-h-[90px] flex items-center justify-center"></p>
+                <button onclick="resetTruthOrDareTurn()" class="w-full py-3 bg-pink-600 hover:bg-pink-700 font-bold rounded-xl transition">Tour suivant 🔄</button>
+            </div>
+
+            <button onclick="showMenu()" class="w-full py-2 bg-slate-700 rounded-xl font-bold text-xs mt-2">Quitter la partie</button>
         </div>
 
         <!-- 3. QUIZ -->
@@ -255,6 +308,59 @@
             if (data.error) throw new Error(data.error.message);
             let rawText = data.candidates[0].content.parts[0].text;
             return JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
+        }
+
+        // --- ACTION OU VÉRITÉ ---
+        let currentTodMode = 'chill';
+
+        function openTruthOrDareSetup() {
+            document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('screen-tod-setup').classList.remove('hidden');
+        }
+
+        function launchTruthOrDare() {
+            const selectedRadio = document.querySelector('input[name="tod-mode"]:checked');
+            currentTodMode = selectedRadio ? selectedRadio.value : 'chill';
+
+            document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('screen-tod-play').classList.remove('hidden');
+            
+            const badge = document.getElementById('tod-mode-badge');
+            if (currentTodMode === 'hot') {
+                badge.innerText = "HOT 🔥 (16+)";
+                badge.className = "px-2 py-1 bg-rose-900/50 text-rose-300 rounded font-bold";
+            } else {
+                badge.innerText = "CHILL 🌿 (16-)";
+                badge.className = "px-2 py-1 bg-emerald-900/50 text-emerald-300 rounded font-bold";
+            }
+            document.getElementById('tod-player').innerText = `Tour : ${currentUser}`;
+            resetTruthOrDareTurn();
+        }
+
+        function resetTruthOrDareTurn() {
+            document.getElementById('tod-choice-box').classList.remove('hidden');
+            document.getElementById('tod-result-box').classList.add('hidden');
+        }
+
+        async function fetchTruthOrDare(type) {
+            showLoading("Génération d'un défi par l'IA...");
+            try {
+                const prompt = `Génère un gage d'${type} en français pour un jeu entre amis. Niveau d'intensité : ${currentTodMode} (${currentTodMode === 'hot' ? 'corsé, osé, 16+' : 'léger, amusant, chill'}). Retourne un JSON strict : {"text": "Le texte du gage ou de la question"}`;
+                const res = await callGemini(prompt);
+
+                document.getElementById('screen-loading').classList.add('hidden');
+                document.getElementById('screen-tod-play').classList.remove('hidden');
+
+                document.getElementById('tod-choice-box').classList.add('hidden');
+                document.getElementById('tod-result-box').classList.remove('hidden');
+
+                document.getElementById('tod-type-title').innerText = type === 'verite' ? '🧠 Vérité' : '⚡ Action';
+                document.getElementById('tod-prompt-text').innerText = res.text;
+            } catch (err) {
+                alert("Erreur de génération : " + err.message);
+                document.getElementById('screen-loading').classList.add('hidden');
+                document.getElementById('screen-tod-play').classList.remove('hidden');
+            }
         }
 
         // --- 1. QUIZ FLASH ---
@@ -492,7 +598,6 @@
             listContainer.innerHTML = '<p class="text-center text-slate-400">Chargement...</p>';
 
             try {
-                // Pour le tap-reflex, on trie par ordre croissant (le temps le plus petit en premier). Pour les autres, ordre décroissant (plus gros score).
                 const isAscending = (selectedGame === 'Réflexes (ms)');
                 
                 const { data, error } = await supabaseClient
