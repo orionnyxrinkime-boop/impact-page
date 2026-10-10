@@ -90,7 +90,7 @@
                 <span>➔</span>
             </button>
             <button onclick="showLeaderboard()" class="w-full p-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold flex justify-between items-center transition mt-2 text-sm">
-                <span>🏆 Voir le Classement</span>
+                <span>🏆 Voir les Classements</span>
                 <span>➔</span>
             </button>
             
@@ -181,11 +181,23 @@
             <button onclick="showMenu()" class="w-full py-2 bg-slate-700 rounded-xl font-bold text-xs mt-2">Abandonner</button>
         </div>
 
-        <!-- CLASSEMENT -->
+        <!-- CLASSEMENTS -->
         <div id="screen-leaderboard" class="hidden space-y-4">
-            <h2 class="text-xl font-bold text-center mb-4">🏆 Tableau des Scores</h2>
-            <div id="leaderboard-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
-            <button onclick="showMenu()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl transition mt-4">
+            <h2 class="text-xl font-bold text-center mb-2">🏆 Tableaux des Scores</h2>
+            
+            <!-- Sélecteur de jeu -->
+            <select id="leaderboard-game-select" onchange="loadLeaderboardForGame()" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-bold focus:outline-none focus:border-emerald-500 mb-3">
+                <option value="Quiz Flash">🧠 Quiz Flash (IA)</option>
+                <option value="Calcul Flash">🧮 Calcul Flash (15s)</option>
+                <option value="Vrai ou Faux">💡 Vrai ou Faux Express</option>
+                <option value="Nombre Mystère">🎯 Nombre Mystère (1-100)</option>
+                <option value="Réflexes (ms)">⚡ Défi Réflexes (Tap-tap)</option>
+                <option value="Mot Mystère">🔤 Le Mot Mystère (IA)</option>
+            </select>
+
+            <div id="leaderboard-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+            
+            <button onclick="showMenu()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl transition mt-2">
                 Retour au menu
             </button>
         </div>
@@ -467,24 +479,41 @@
             input.value = '';
         }
 
-        // --- CLASSEMENT GLOBAL ---
+        // --- CLASSEMENTS SÉPARÉS PAR JEU ---
         async function showLeaderboard() {
-            showLoading("Récupération du classement...");
-            document.getElementById('screen-loading').classList.add('hidden');
+            document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
             document.getElementById('screen-leaderboard').classList.remove('hidden');
+            loadLeaderboardForGame();
+        }
+
+        async function loadLeaderboardForGame() {
+            const selectedGame = document.getElementById('leaderboard-game-select').value;
             const listContainer = document.getElementById('leaderboard-list');
             listContainer.innerHTML = '<p class="text-center text-slate-400">Chargement...</p>';
+
             try {
-                const { data, error } = await supabaseClient.from('scores').select('*').order('score', { ascending: false }).limit(10);
+                // Pour le tap-reflex, on trie par ordre croissant (le temps le plus petit en premier). Pour les autres, ordre décroissant (plus gros score).
+                const isAscending = (selectedGame === 'Réflexes (ms)');
+                
+                const { data, error } = await supabaseClient
+                    .from('scores')
+                    .select('*')
+                    .eq('game', selectedGame)
+                    .order('score', { ascending: isAscending })
+                    .limit(10);
+
                 listContainer.innerHTML = '';
-                if(error || !data || data.length === 0) {
-                    listContainer.innerHTML = '<p class="text-center text-slate-400">Aucun score pour l\'instant.</p>';
+
+                if (error || !data || data.length === 0) {
+                    listContainer.innerHTML = '<p class="text-center text-slate-400">Aucun score pour ce jeu pour l\'instant.</p>';
                     return;
                 }
+
                 data.forEach((row, index) => {
                     const item = document.createElement('div');
                     item.className = "flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-700 text-sm";
-                    item.innerHTML = `<span>#${index+1} <b>${row.pseudo}</b> <span class="text-xs text-slate-400">(${row.game})</span></span> <span class="text-emerald-400 font-bold">${row.score} pts</span>`;
+                    const unit = isAscending ? 'ms' : 'pts';
+                    item.innerHTML = `<span>#${index+1} <b>${row.pseudo}</b></span> <span class="text-emerald-400 font-bold">${row.score} ${unit}</span>`;
                     listContainer.appendChild(item);
                 });
             } catch (e) {
