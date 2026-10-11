@@ -6,12 +6,15 @@
     <title>WhatsApp Gaming Arena 🎮</title>
     
     <!-- FAVICON (Icône de l'onglet) -->
-    <!-- Remplace l'URL ci-dessous par le lien de ton image de favicon (format .ico ou .png) -->
     <link rel="icon" type="image/png" href="./monfavicon.png">
+
+    <!-- PWA MANIFEST & CONFIG -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0f172a">
 
     <!-- BALISES OPENGRAPH (Pour les partages WhatsApp, Réseaux Sociaux) -->
     <meta property="og:title" content="WhatsApp Gaming Arena 🎮">
-    <meta property="og:description" content="Viens te défier sur l'arène de jeux exclusive : Quiz IA, Calcul Flash, Mot Mystère et plein d'autres défis !">
+    <meta property="og:description" content="Viens te défier sur l'arène de jeux exclusive : Quiz IA, Calcul Flash, Mot Mystère, Piano Arena et plein d'autres défis !">
     <meta property="og:image" content="https://raw.githubusercontent.com/orionnyxrinkime-boop/impact-page/main/opengraph.png">
     <meta property="og:url" content="https://orionnyxrinkime-boop.github.io/impact-page/">
     <meta property="og:type" content="website">
@@ -189,20 +192,28 @@
                 <h3 id="tod-type-title" class="text-xl font-black text-pink-400 uppercase"></h3>
                 <p id="tod-prompt-text" class="text-base font-bold bg-slate-900 p-4 rounded-xl border border-slate-700 min-h-[70px] flex items-center justify-center"></p>
                 
-                <!-- Zone de réponse / Caméra -->
-                <div class="space-y-2 text-left">
+                <!-- Zone de réponse / Caméra Directe / Audio -->
+                <div class="space-y-3 text-left">
                     <label class="text-xs text-slate-400 font-bold">Ta réponse / Preuve :</label>
                     <input type="text" id="tod-answer-input" placeholder="Écris ta réponse ici..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-bold">
                     
-                    <div class="flex items-center space-x-2">
-                        <label class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-center rounded-xl text-xs font-bold cursor-pointer transition">
-                            📸 Prendre une photo
-                            <input type="file" accept="image/*" capture="environment" id="tod-photo-input" class="hidden" onchange="previewPhoto(this)">
-                        </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="openCameraModal()" type="button" class="py-2.5 bg-slate-700 hover:bg-slate-600 text-center rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1">
+                            <span>📸 Ouvrir Caméra</span>
+                        </button>
+                        <button onclick="toggleAudioRecording()" id="audio-record-btn" type="button" class="py-2.5 bg-slate-700 hover:bg-slate-600 text-center rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1">
+                            <span>🎙️ Enregistrer Vocal</span>
+                        </button>
                     </div>
+
+                    <div id="audio-preview-container" class="hidden flex items-center justify-between bg-slate-900 p-2 rounded-xl border border-slate-700">
+                        <audio id="audio-playback" controls class="w-full h-8"></audio>
+                        <button onclick="removeAudio()" class="ml-2 bg-rose-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center">✕</button>
+                    </div>
+
                     <div id="photo-preview-container" class="hidden relative">
-                        <img id="photo-preview" class="w-full h-28 object-cover rounded-xl border border-slate-700">
-                        <button onclick="removePhoto()" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-6 h-6 text-xs font-bold">✕</button>
+                        <img id="photo-preview" class="w-full h-32 object-cover rounded-xl border border-slate-700">
+                        <button onclick="removePhoto()" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-6 h-6 text-xs font-bold flex items-center justify-center">✕</button>
                     </div>
                 </div>
 
@@ -331,6 +342,21 @@
 
     </div>
 
+    <!-- MODAL CAMÉRA EN DIRECT -->
+    <div id="camera-modal" class="hidden fixed inset-0 bg-slate-950/95 z-50 flex flex-col items-center justify-center p-4">
+        <div class="relative w-full max-w-sm bg-slate-900 p-4 rounded-2xl border border-slate-700 flex flex-col items-center">
+            <h3 class="text-sm font-bold text-pink-400 mb-2">Prends ta photo en direct 📸</h3>
+            <div class="relative w-full h-72 bg-black rounded-xl overflow-hidden mb-3">
+                <video id="camera-video" autoplay playsinline class="w-full h-full object-cover"></video>
+                <canvas id="camera-canvas" class="hidden"></canvas>
+            </div>
+            <div class="flex space-x-3 w-full">
+                <button onclick="takeSnapshot()" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 font-bold rounded-xl text-sm transition">Capturer 🟢</button>
+                <button onclick="closeCameraModal()" class="py-3 px-4 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl text-sm transition">Fermer ✕</button>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT -->
     <script>
         const SUPABASE_URL = 'https://dtmrlccknudgyjtjdmza.supabase.co';
@@ -357,6 +383,7 @@
 
         function showMenu() {
             pianoGameRunning = false;
+            stopTurnTimer();
             document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
             document.getElementById('screen-menu').classList.remove('hidden');
         }
@@ -373,7 +400,8 @@
             } catch (e) { console.error("Erreur score", e); }
         }
 
-        async function callGemini(promptText) {
+        // Appel de ta fonction Groq (generate-ai2) configurée sur Supabase
+        async function callAI(promptText) {
             const { data, error } = await supabaseClient.functions.invoke('generate-ai2', {
                 body: { prompt: promptText }
             });
@@ -381,6 +409,13 @@
             if (data.error) throw new Error(data.error.message);
             let rawText = data.candidates[0].content.parts[0].text;
             return JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
+        }
+
+        // --- ENREGISTREMENT DU SERVICE WORKER (PWA) ---
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log("Service Worker enregistré avec succès !"))
+                .catch((err) => console.log("Erreur Service Worker :", err));
         }
 
         // --- GESTION DU MINI-JEU PIANO ARENA ---
@@ -672,13 +707,119 @@
             requestAnimationFrame(pianoGameLoop);
         }
 
-        // --- GESTION DES SALLES & ACTION OU VÉRITÉ ---
+        // --- GESTION DE LA CAMÉRA EN DIRECT ---
+        let mediaStream = null;
+
+        async function openCameraModal() {
+            document.getElementById('camera-modal').classList.remove('hidden');
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' }, 
+                    audio: false 
+                });
+                const videoElement = document.getElementById('camera-video');
+                videoElement.srcObject = mediaStream;
+            } catch (err) {
+                alert("Impossible d'accéder à la caméra : " + err.message);
+                closeCameraModal();
+            }
+        }
+
+        function closeCameraModal() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            document.getElementById('camera-modal').classList.add('hidden');
+        }
+
+        function takeSnapshot() {
+            const video = document.getElementById('camera-video');
+            const canvas = document.getElementById('camera-canvas');
+            canvas.width = video.videoWidth || 320;
+            canvas.height = video.videoHeight || 240;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            base64Image = canvas.toDataURL('image/png');
+            document.getElementById('photo-preview').src = base64Image;
+            document.getElementById('photo-preview-container').classList.remove('hidden');
+            
+            closeCameraModal();
+        }
+
+        function removePhoto() {
+            base64Image = '';
+            document.getElementById('photo-preview-container').classList.add('hidden');
+        }
+
+        // --- GESTION DE L'ENREGISTREMENT AUDIO (MICRO) ---
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let base64Audio = '';
+        let isRecording = false;
+
+        async function toggleAudioRecording() {
+            const btn = document.getElementById('audio-record-btn');
+            
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = () => {
+                            base64Audio = reader.result;
+                            const playback = document.getElementById('audio-playback');
+                            playback.src = base64Audio;
+                            document.getElementById('audio-preview-container').classList.remove('hidden');
+                        };
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    btn.innerHTML = "<span>🛑 Arrêter (Enregistrement...)</span>";
+                    btn.className = "py-2.5 bg-rose-600 hover:bg-rose-700 text-center rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1 animate-pulse";
+                } catch (err) {
+                    alert("Impossible d'accéder au micro : " + err.message);
+                }
+            } else {
+                if (mediaRecorder) {
+                    mediaRecorder.stop();
+                }
+                isRecording = false;
+                btn.innerHTML = "<span>🎙️ Enregistrer Vocal</span>";
+                btn.className = "py-2.5 bg-slate-700 hover:bg-slate-600 text-center rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1";
+            }
+        }
+
+        function removeAudio() {
+            base64Audio = '';
+            document.getElementById('audio-preview-container').classList.add('hidden');
+            document.getElementById('audio-playback').src = '';
+        }
+
+        // --- GESTION DES SALLES & ACTION OU VÉRITÉ (TOUR PAR TOUR STRICT) ---
         let currentRoomCode = '';
         let currentTodMode = 'chill';
         let currentChallengeType = '';
         let currentChallengeText = '';
-        let base64Image = '';
         let playersSubscription = null;
+        
+        let roomPlayersList = [];
+        let currentPlayerTurn = '';
+        let turnTimer = null;
+        let turnTimeLeft = 30;
 
         function openTruthOrDareSetup() {
             document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
@@ -692,6 +833,10 @@
 
             showLoading("Création de la salle...");
             try {
+                await supabaseClient.from('room_submissions').delete().eq('room_code', currentRoomCode);
+                await supabaseClient.from('room_players').delete().eq('room_code', currentRoomCode);
+                await supabaseClient.from('rooms').delete().eq('code', currentRoomCode);
+
                 await supabaseClient.from('rooms').insert([{ code: currentRoomCode, mode: currentTodMode, host: currentUser }]);
                 await supabaseClient.from('room_players').insert([{ room_code: currentRoomCode, pseudo: currentUser }]);
                 enterLobby();
@@ -711,7 +856,12 @@
 
                 currentRoomCode = data.code;
                 currentTodMode = data.mode;
-                await supabaseClient.from('room_players').insert([{ room_code: currentRoomCode, pseudo: currentUser }]);
+                
+                const { data: existingPlayers } = await supabaseClient.from('room_players').select('*').eq('room_code', currentRoomCode).eq('pseudo', currentUser);
+                if (!existingPlayers || existingPlayers.length === 0) {
+                    await supabaseClient.from('room_players').insert([{ room_code: currentRoomCode, pseudo: currentUser }]);
+                }
+                
                 enterLobby();
             } catch (e) { alert("Erreur : " + e.message); showMenu(); }
         }
@@ -724,7 +874,7 @@
 
             if (playersSubscription) supabaseClient.removeChannel(playersSubscription);
             playersSubscription = supabaseClient
-                .channel('public:room_players')
+                .channel('public:room_players_lobby')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players', filter: `room_code=eq.${currentRoomCode}` }, () => {
                     fetchPlayersInRoom();
                 })
@@ -734,9 +884,10 @@
         async function fetchPlayersInRoom() {
             const { data } = await supabaseClient.from('room_players').select('pseudo').eq('room_code', currentRoomCode);
             if (data) {
-                document.getElementById('player-count').innerText = data.length;
+                roomPlayersList = data.map(p => p.pseudo);
+                document.getElementById('player-count').innerText = roomPlayersList.length;
                 const container = document.getElementById('players-list-container');
-                container.innerHTML = data.map(p => `<div class="font-bold text-emerald-400">👤 ${p.pseudo}</div>`).join('');
+                container.innerHTML = roomPlayersList.map(p => `<div class="font-bold text-emerald-400">👤 ${p.pseudo}</div>`).join('');
             }
         }
 
@@ -745,10 +896,14 @@
                 await supabaseClient.from('room_players').delete().eq('room_code', currentRoomCode).eq('pseudo', currentUser);
             }
             if (playersSubscription) supabaseClient.removeChannel(playersSubscription);
+            stopTurnTimer();
             showMenu();
         }
 
-        function startTodGameSession() {
+        async function startTodGameSession() {
+            if (roomPlayersList.length === 0) {
+                await fetchPlayersInRoom();
+            }
             document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
             document.getElementById('screen-tod-play').classList.remove('hidden');
 
@@ -760,7 +915,54 @@
                 badge.innerText = "CHILL 🌿 (16-)";
                 badge.className = "px-2 py-1 bg-emerald-900/50 text-emerald-300 rounded font-bold";
             }
+
+            currentPlayerTurn = roomPlayersList[0] || currentUser;
+            setupTurnState();
+        }
+
+        function setupTurnState() {
+            stopTurnTimer();
             resetTruthOrDareTurn();
+
+            const isMyTurn = (currentPlayerTurn === currentUser);
+            const playerIndicator = document.getElementById('tod-player');
+            const choiceBox = document.getElementById('tod-choice-box');
+            
+            if (isMyTurn) {
+                playerIndicator.innerText = "C'est ton tour ! 🎯";
+                playerIndicator.className = "font-bold text-emerald-400 animate-pulse";
+                choiceBox.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                playerIndicator.innerText = `Tour de : ${currentPlayerTurn} (Patientez...)`;
+                playerIndicator.className = "font-bold text-amber-400";
+                choiceBox.classList.add('opacity-50', 'pointer-events-none');
+            }
+
+            turnTimeLeft = 30;
+            turnTimer = setInterval(() => {
+                turnTimeLeft--;
+                if (turnTimeLeft <= 0) {
+                    stopTurnTimer();
+                    alert(`Temps écoulé pour ${currentPlayerTurn} ! Passage au joueur suivant.`);
+                    nextPlayerTurn();
+                }
+            }, 1000);
+        }
+
+        function stopTurnTimer() {
+            if (turnTimer) {
+                clearInterval(turnTimer);
+                turnTimer = null;
+            }
+        }
+
+        function nextPlayerTurn() {
+            const currentIndex = roomPlayersList.indexOf(currentPlayerTurn);
+            if (currentIndex !== -1 && roomPlayersList.length > 1) {
+                const nextIndex = (currentIndex + 1) % roomPlayersList.length;
+                currentPlayerTurn = roomPlayersList[nextIndex];
+            }
+            setupTurnState();
         }
 
         function resetTruthOrDareTurn() {
@@ -768,29 +970,15 @@
             document.getElementById('tod-result-box').classList.add('hidden');
             document.getElementById('tod-answer-input').value = '';
             removePhoto();
-        }
-
-        function previewPhoto(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    base64Image = e.target.result;
-                    document.getElementById('photo-preview').src = base64Image;
-                    document.getElementById('photo-preview-container').classList.remove('hidden');
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        function removePhoto() {
-            base64Image = '';
-            document.getElementById('tod-photo-input').value = '';
-            document.getElementById('photo-preview-container').classList.add('hidden');
+            removeAudio();
         }
 
         async function fetchTruthOrDare(type) {
+            if (currentPlayerTurn !== currentUser) return alert("Ce n'est pas ton tour de jouer !");
+            
             currentChallengeType = type;
-            showLoading("Génération d'un défi par l'IA...");
+            stopTurnTimer();
+            showLoading("Génération d'un défi par Groq...");
             
             const fallbacks = {
                 verite: {
@@ -805,7 +993,7 @@
 
             try {
                 const prompt = `Génère un gage d'${type} en français pour un jeu entre amis. Niveau d'intensité : ${currentTodMode} (${currentTodMode === 'hot' ? 'corsé, osé, 16+' : 'léger, amusant, chill'}). Retourne un JSON strict : {"text": "Le texte du gage ou de la question"}`;
-                const res = await callGemini(prompt);
+                const res = await callAI(prompt);
                 currentChallengeText = res.text;
 
                 document.getElementById('screen-loading').classList.add('hidden');
@@ -831,7 +1019,7 @@
 
         async function submitTodAnswer() {
             const answerText = document.getElementById('tod-answer-input').value.trim();
-            if (!answerText && !base64Image) return alert("Écris une réponse ou prends une photo avant de valider !");
+            if (!answerText && !base64Image && !base64Audio) return alert("Écris une réponse, prends une photo ou enregistre un vocal avant de valider !");
 
             showLoading("Enregistrement de ta réponse...");
             try {
@@ -840,13 +1028,15 @@
                     pseudo: currentUser,
                     challenge_type: currentChallengeType,
                     challenge_text: currentChallengeText,
-                    answer_text: answerText || "(Photo transmise)",
-                    image_url: base64Image || null
+                    answer_text: answerText || (base64Audio ? "(Message vocal transmis)" : "(Photo transmise)"),
+                    image_url: base64Image || null,
+                    audio_url: base64Audio || null
                 }]);
 
                 document.getElementById('screen-loading').classList.add('hidden');
                 document.getElementById('screen-tod-play').classList.remove('hidden');
-                resetTruthOrDareTurn();
+                
+                nextPlayerTurn();
             } catch (e) {
                 alert("Erreur lors de l'envoi : " + e.message);
                 document.getElementById('screen-loading').classList.add('hidden');
@@ -855,19 +1045,22 @@
         }
 
         async function endTodGameSession() {
-            if (!confirm("Vux-tu terminer la partie et télécharger le récapitulatif ? (Les données de la salle seront ensuite supprimées)")) return;
+            if (!confirm("Veux-tu terminer la partie et télécharger le récapitulatif propre à cette session ?")) return;
 
             showLoading("Génération du récapitulatif...");
             try {
                 const { data: submissions } = await supabaseClient.from('room_submissions').select('*').eq('room_code', currentRoomCode);
 
-                let recapContent = `=== RECAPITULATIF PARTIE ACTION OU VERITE (Salle: ${currentRoomCode}) ===\n\n`;
+                let recapContent = `=== RECAPITULATIF PARTIE ACTION OU VERITE (Salle: ${currentRoomCode}) ===\n`;
+                recapContent += `Date : ${new Date().toLocaleString()}\n\n`;
+
                 if (submissions && submissions.length > 0) {
                     submissions.forEach((sub, i) => {
-                        recapContent += `${i+1}. Joueur :${sub.pseudo}\n`;
+                        recapContent += `${i+1}. Joueur : ${sub.pseudo}\n`;
                         recapContent += `   Type : ${sub.challenge_type.toUpperCase()}\n`;
                         recapContent += `   Défi : ${sub.challenge_text}\n`;
                         recapContent += `   Réponse : ${sub.answer_text}\n`;
+                        if(sub.audio_url) recapContent += `   [Contient un enregistrement vocal]\n`;
                         recapContent += `--------------------------------------------------\n`;
                     });
                 } else {
@@ -885,11 +1078,13 @@
                 URL.revokeObjectURL(url);
 
                 await supabaseClient.from('room_submissions').delete().eq('room_code', currentRoomCode);
-                await supabaseClient.from('rooms').delete().eq('code', currentRoomCode);
                 await supabaseClient.from('room_players').delete().eq('room_code', currentRoomCode);
+                await supabaseClient.from('rooms').delete().eq('code', currentRoomCode);
 
                 if (playersSubscription) supabaseClient.removeChannel(playersSubscription);
-                alert("Fichier de récap téléchargé ! La salle a été nettoyée de la base de données.");
+                stopTurnTimer();
+                
+                alert("Récapitulatif téléchargé et salle nettoyée !");
                 showMenu();
             } catch (e) {
                 alert("Erreur : " + e.message);
@@ -900,10 +1095,10 @@
         // --- AUTRES JEUX ---
         let quizQuestions = [], currentQuizIndex = 0, currentQuizScore = 0;
         async function startQuiz() {
-            showLoading("Génération d'un quiz inédit par l'IA...");
+            showLoading("Génération d'un quiz inédit par Groq...");
             try {
                 const prompt = `Génère 5 questions de culture générale et pop-culture en français. Retourne un JSON strict sous forme de tableau : [{"question": "...", "options": ["A", "B", "C", "D"], "answer": "Bonne réponse exacte"}]`;
-                quizQuestions = await callGemini(prompt);
+                quizQuestions = await callAI(prompt);
                 currentQuizIndex = 0; currentQuizScore = 0;
                 document.getElementById('screen-loading').classList.add('hidden');
                 document.getElementById('screen-quiz').classList.remove('hidden');
@@ -981,7 +1176,7 @@
             showLoading("Génération des faits insolites...");
             try {
                 const prompt = `Génère 5 affirmations (mélange de vraies et fausses) insolites ou de culture générale en français. Retourne un JSON strict sous forme de tableau : [{"statement": "...", "isTrue": true}]`;
-                tfList = await callGemini(prompt);
+                tfList = await callAI(prompt);
                 tfIndex = 0; tfScore = 0;
                 document.getElementById('screen-loading').classList.add('hidden');
                 document.getElementById('screen-tf').classList.remove('hidden');
@@ -1070,10 +1265,10 @@
 
         let targetWord = "TABLE", currentAttempt = 0;
         async function startWordle() {
-            showLoading("Recherche d'un mot mystère par l'IA...");
+            showLoading("Recherche d'un mot mystère par Groq...");
             try {
                 const prompt = `Génère un mot en français exact de 5 lettres (sans accents, en majuscules) et un indice court et marrant. Retourne un JSON strict : {"word": "MAISON", "hint": "Lieu de vie"}`;
-                const res = await callGemini(prompt);
+                const res = await callAI(prompt);
                 targetWord = res.word.toUpperCase();
                 document.getElementById('word-hint').innerText = res.hint;
                 currentAttempt = 0;
@@ -1145,11 +1340,6 @@
                 listContainer.innerHTML = '<p class="text-center text-rose-400">Erreur de chargement du classement.</p>';
             }
         }
-        if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-        .then(() => console.log("Service Worker enregistré avec succès !"))
-        .catch((err) => console.log("Erreur Service Worker :", err));
-}
     </script>
 </body>
 </html>
