@@ -374,7 +374,7 @@
         }
 
         async function callGemini(promptText) {
-            const { data, error } = await supabaseClient.functions.invoke('generate-ai', {
+            const { data, error } = await supabaseClient.functions.invoke('generate-ai2', {
                 body: { prompt: promptText }
             });
             if (error) throw new Error(error.message);
