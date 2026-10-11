@@ -69,6 +69,10 @@
                 <span>🧠 Quiz Flash (IA)</span>
                 <span>➔</span>
             </button>
+            <button onclick="openTruthOrDareSetup()" class="w-full p-3 bg-pink-600 hover:bg-pink-700 rounded-xl font-bold flex justify-between items-center transition text-sm shadow-md">
+                <span>🔥 Action ou Vérité (Salles)</span>
+                <span>➔</span>
+            </button>
             <button onclick="startCalcul()" class="w-full p-3 bg-teal-600 hover:bg-teal-700 rounded-xl font-bold flex justify-between items-center transition text-sm">
                 <span>🧮 Calcul Flash (15s)</span>
                 <span>➔</span>
@@ -94,7 +98,6 @@
                 <span>➔</span>
             </button>
             
-            <!-- BOUTON COMMUNAUTÉ WHATSAPP -->
             <a href="https://chat.whatsapp.com/GqSXdPX43ZbBWZ7GlGjk0p" target="_blank" class="w-full p-3 bg-emerald-600 hover:bg-emerald-700 rounded-xl font-bold flex justify-between items-center transition text-sm shadow-lg shadow-emerald-600/20">
                 <span>💬 Rejoindre la communauté</span>
                 <span>🔗</span>
@@ -104,10 +107,108 @@
         <!-- CHARGEMENT -->
         <div id="screen-loading" class="hidden text-center py-12 space-y-4">
             <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
-            <p id="loading-text" class="text-sm text-slate-300 font-medium">Génération d'un défi exclusif par l'IA...</p>
+            <p id="loading-text" class="text-sm text-slate-300 font-medium">Chargement en cours...</p>
         </div>
 
-        <!-- 3. QUIZ -->
+        <!-- CONFIG / CRÉATION SALLE ACTION OU VÉRITÉ -->
+        <div id="screen-tod-setup" class="hidden space-y-4">
+            <h2 class="text-lg font-bold text-center text-pink-400">🔥 Action ou Vérité (Salles)</h2>
+            <div class="space-y-3">
+                <div class="space-y-1">
+                    <label class="text-xs text-slate-400 font-bold">1. Choisis l'ambiance :</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="p-2 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-center block hover:border-pink-500">
+                            <input type="radio" name="tod-mode" value="chill" checked class="accent-pink-500 mb-1">
+                            <span class="block text-xs font-bold text-emerald-400">Chill (16-)</span>
+                        </label>
+                        <label class="p-2 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-center block hover:border-pink-500">
+                            <input type="radio" name="tod-mode" value="hot" class="accent-pink-500 mb-1">
+                            <span class="block text-xs font-bold text-rose-400">Hot (16+) 🔥</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button onclick="createRoom()" class="w-full py-3 bg-pink-600 hover:bg-pink-700 font-bold rounded-xl transition shadow-lg shadow-pink-600/30">
+                    Créer une salle 🏠
+                </button>
+
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-slate-700"></div>
+                    <span class="flex-shrink mx-4 text-xs text-slate-500">OU REJOINDRE</span>
+                    <div class="flex-grow border-t border-slate-700"></div>
+                </div>
+
+                <div class="space-y-2">
+                    <input type="text" id="room-code-input" placeholder="Code de la salle (ex: AB12)" 
+                        class="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-center font-bold uppercase text-sm">
+                    <button onclick="joinRoom()" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl transition text-sm">
+                        Rejoindre avec le code 🚪
+                    </button>
+                </div>
+            </div>
+            <button onclick="showMenu()" class="w-full py-2 bg-slate-800 rounded-xl font-bold text-xs mt-2 border border-slate-700">Retour au menu</button>
+        </div>
+
+        <!-- SALLE D'ATTENTE ACTION OU VÉRITÉ -->
+        <div id="screen-tod-lobby" class="hidden space-y-4 text-center">
+            <h2 class="text-lg font-bold text-pink-400">🚪 Salle d'attente</h2>
+            <p class="text-xs text-slate-400">Partage ce code à tes amis sur WhatsApp :</p>
+            <div id="room-code-display" class="text-2xl font-black bg-slate-900 py-3 rounded-xl border border-slate-700 text-emerald-400 tracking-widest"></div>
+            
+            <div class="space-y-2 text-left">
+                <p class="text-xs text-slate-400 font-bold">Membres dans la salle (<span id="player-count">0</span>) :</p>
+                <div id="players-list-container" class="bg-slate-900 p-3 rounded-xl border border-slate-700 max-h-32 overflow-y-auto space-y-1 text-sm"></div>
+            </div>
+
+            <button onclick="startTodGameSession()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 font-bold rounded-xl transition shadow-lg">
+                Commencer la partie 🎮
+            </button>
+            <button onclick="leaveRoom()" class="w-full py-2 bg-slate-700 rounded-xl font-bold text-xs">Quitter la salle</button>
+        </div>
+
+        <!-- JEU ACTION OU VÉRITÉ EN COURS -->
+        <div id="screen-tod-play" class="hidden space-y-4 text-center">
+            <div class="flex justify-between items-center text-xs text-slate-400">
+                <span id="tod-mode-badge" class="px-2 py-1 bg-pink-900/50 text-pink-300 rounded font-bold">CHILL</span>
+                <span id="tod-player" class="font-bold text-emerald-400">Tour en cours</span>
+            </div>
+            
+            <div id="tod-choice-box" class="space-y-3 py-4">
+                <h3 class="text-lg font-bold">Que choisis-tu ?</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="fetchTruthOrDare('verite')" class="py-6 bg-indigo-600 hover:bg-indigo-700 font-black rounded-xl text-lg transition shadow-lg">VÉRITÉ 🧠</button>
+                    <button onclick="fetchTruthOrDare('action')" class="py-6 bg-rose-600 hover:bg-rose-700 font-black rounded-xl text-lg transition shadow-lg">ACTION ⚡</button>
+                </div>
+            </div>
+
+            <div id="tod-result-box" class="hidden space-y-4 py-2">
+                <h3 id="tod-type-title" class="text-xl font-black text-pink-400 uppercase"></h3>
+                <p id="tod-prompt-text" class="text-base font-bold bg-slate-900 p-4 rounded-xl border border-slate-700 min-h-[70px] flex items-center justify-center"></p>
+                
+                <!-- Zone de réponse / Caméra -->
+                <div class="space-y-2 text-left">
+                    <label class="text-xs text-slate-400 font-bold">Ta réponse / Preuve :</label>
+                    <input type="text" id="tod-answer-input" placeholder="Écris ta réponse ici..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-bold">
+                    
+                    <div class="flex items-center space-x-2">
+                        <label class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-center rounded-xl text-xs font-bold cursor-pointer transition">
+                            📸 Prendre une photo
+                            <input type="file" accept="image/*" capture="environment" id="tod-photo-input" class="hidden" onchange="previewPhoto(this)">
+                        </label>
+                    </div>
+                    <div id="photo-preview-container" class="hidden relative">
+                        <img id="photo-preview" class="w-full h-28 object-cover rounded-xl border border-slate-700">
+                        <button onclick="removePhoto()" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-6 h-6 text-xs font-bold">✕</button>
+                    </div>
+                </div>
+
+                <button onclick="submitTodAnswer()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 font-bold rounded-xl transition shadow-lg">Valider & Tour suivant 🔄</button>
+            </div>
+
+            <button onclick="endTodGameSession()" class="w-full py-2 bg-rose-600/80 hover:bg-rose-600 rounded-xl font-bold text-xs mt-2">Terminer la partie & Récap txt 📄</button>
+        </div>
+
+        <!-- AUTRES ÉCRANS DE JEU -->
         <div id="screen-quiz" class="hidden space-y-4">
             <div class="flex justify-between text-sm text-slate-400">
                 <span id="quiz-progress">Question 1/5</span>
@@ -117,7 +218,6 @@
             <div id="quiz-options" class="space-y-2"></div>
         </div>
 
-        <!-- CALCUL FLASH -->
         <div id="screen-calcul" class="hidden space-y-4">
             <div class="flex justify-between text-sm text-slate-400">
                 <span id="calcul-timer">⏱️ 15s</span>
@@ -131,7 +231,6 @@
             </div>
         </div>
 
-        <!-- VRAI OU FAUX -->
         <div id="screen-tf" class="hidden space-y-4">
             <div class="flex justify-between text-sm text-slate-400">
                 <span id="tf-progress">Affirmation 1/5</span>
@@ -144,7 +243,6 @@
             </div>
         </div>
 
-        <!-- NOMBRE MYSTÈRE -->
         <div id="screen-nombre" class="hidden space-y-4 text-center">
             <h3 class="text-lg font-bold">Devine le nombre (1 à 100)</h3>
             <p id="nombre-indice" class="text-sm text-cyan-400 font-medium">Entre une proposition !</p>
@@ -156,7 +254,6 @@
             <button onclick="showMenu()" class="w-full py-2 bg-slate-700 rounded-xl font-bold text-xs mt-2">Abandonner</button>
         </div>
 
-        <!-- RÉFLEXES -->
         <div id="screen-reflex" class="hidden space-y-4 text-center">
             <h3 class="text-lg font-bold">Tape le plus vite possible !</h3>
             <p id="reflex-status" class="text-sm text-slate-400">Prépare-toi...</p>
@@ -166,7 +263,6 @@
             <button onclick="showMenu()" class="w-full py-2 bg-slate-700 rounded-xl font-bold mt-4">Retour au menu</button>
         </div>
 
-        <!-- MOT MYSTÈRE -->
         <div id="screen-wordle" class="hidden space-y-4">
             <div class="text-center">
                 <h3 class="text-lg font-bold">Mot Mystère</h3>
@@ -181,11 +277,8 @@
             <button onclick="showMenu()" class="w-full py-2 bg-slate-700 rounded-xl font-bold text-xs mt-2">Abandonner</button>
         </div>
 
-        <!-- CLASSEMENTS -->
         <div id="screen-leaderboard" class="hidden space-y-4">
             <h2 class="text-xl font-bold text-center mb-2">🏆 Tableaux des Scores</h2>
-            
-            <!-- Sélecteur de jeu -->
             <select id="leaderboard-game-select" onchange="loadLeaderboardForGame()" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-bold focus:outline-none focus:border-emerald-500 mb-3">
                 <option value="Quiz Flash">🧠 Quiz Flash (IA)</option>
                 <option value="Calcul Flash">🧮 Calcul Flash (15s)</option>
@@ -194,9 +287,7 @@
                 <option value="Réflexes (ms)">⚡ Défi Réflexes (Tap-tap)</option>
                 <option value="Mot Mystère">🔤 Le Mot Mystère (IA)</option>
             </select>
-
             <div id="leaderboard-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
-            
             <button onclick="showMenu()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 font-bold rounded-xl transition mt-2">
                 Retour au menu
             </button>
@@ -210,7 +301,7 @@
         const SUPABASE_KEY = 'sb_publishable_TOExBTkog64ah8wn8Q2vtg_LheNQdBJ';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let currentUser = localStorage.getItem('whatsapp_arena_user') || '';
+        let currentUser = localStorage.getItem('whatsapp_arena_user'] || '';
 
         if (currentUser) {
             document.getElementById('screen-login').classList.add('hidden');
@@ -242,9 +333,7 @@
         async function saveScore(gameName, scoreValue) {
             try {
                 await supabaseClient.from('scores').insert([{ pseudo: currentUser, game: gameName, score: scoreValue }]);
-            } catch (e) {
-                console.error("Erreur score", e);
-            }
+            } catch (e) { console.error("Erreur score", e); }
         }
 
         async function callGemini(promptText) {
@@ -257,7 +346,235 @@
             return JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
         }
 
-        // --- 1. QUIZ FLASH ---
+        // --- GESTION DES SALLES & ACTION OU VÉRITÉ ---
+        let currentRoomCode = '';
+        let currentTodMode = 'chill';
+        let currentChallengeType = '';
+        let currentChallengeText = '';
+        let base64Image = '';
+        let playersSubscription = null;
+
+        function openTruthOrDareSetup() {
+            document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('screen-tod-setup').classList.remove('hidden');
+        }
+
+        async function createRoom() {
+            const selectedRadio = document.querySelector('input[name="tod-mode"]:checked');
+            currentTodMode = selectedRadio ? selectedRadio.value : 'chill';
+            currentRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+            showLoading("Création de la salle...");
+            try {
+                await supabaseClient.from('rooms').insert([{ code: currentRoomCode, mode: currentTodMode, host: currentUser }]);
+                await supabaseClient.from('room_players').insert([{ room_code: currentRoomCode, pseudo: currentUser }]);
+                enterLobby();
+            } catch (e) {
+                alert("Erreur : " + e.message); showMenu();
+            }
+        }
+
+        async function joinRoom() {
+            const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+            if (!code) return alert("Entre un code de salle !");
+
+            showLoading("Recherche de la salle...");
+            try {
+                const { data, error } = await supabaseClient.from('rooms').select('*').eq('code', code).single();
+                if (error || !data) { alert("Salle introuvable !"); showMenu(); return; }
+
+                currentRoomCode = data.code;
+                currentTodMode = data.mode;
+                await supabaseClient.from('room_players').insert([{ room_code: currentRoomCode, pseudo: currentUser }]);
+                enterLobby();
+            } catch (e) { alert("Erreur : " + e.message); showMenu(); }
+        }
+
+        async function enterLobby() {
+            document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('screen-tod-lobby').classList.remove('hidden');
+            document.getElementById('room-code-display').innerText = currentRoomCode;
+            await fetchPlayersInRoom();
+
+            if (playersSubscription) supabaseClient.removeChannel(playersSubscription);
+            playersSubscription = supabaseClient
+                .channel('public:room_players')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players', filter: `room_code=eq.${currentRoomCode}` }, () => {
+                    fetchPlayersInRoom();
+                })
+                .subscribe();
+        }
+
+        async function fetchPlayersInRoom() {
+            const { data } = await supabaseClient.from('room_players').select('pseudo').eq('room_code', currentRoomCode);
+            if (data) {
+                document.getElementById('player-count').innerText = data.length;
+                const container = document.getElementById('players-list-container');
+                container.innerHTML = data.map(p => `<div class="font-bold text-emerald-400">👤 ${p.pseudo}</div>`).join('');
+            }
+        }
+
+        async function leaveRoom() {
+            if (currentRoomCode) {
+                await supabaseClient.from('room_players').delete().eq('room_code', currentRoomCode).eq('pseudo', currentUser);
+            }
+            if (playersSubscription) supabaseClient.removeChannel(playersSubscription);
+            showMenu();
+        }
+
+        function startTodGameSession() {
+            document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('screen-tod-play').classList.remove('hidden');
+
+            const badge = document.getElementById('tod-mode-badge');
+            if (currentTodMode === 'hot') {
+                badge.innerText = "HOT 🔥 (16+)";
+                badge.className = "px-2 py-1 bg-rose-900/50 text-rose-300 rounded font-bold";
+            } else {
+                badge.innerText = "CHILL 🌿 (16-)";
+                badge.className = "px-2 py-1 bg-emerald-900/50 text-emerald-300 rounded font-bold";
+            }
+            resetTruthOrDareTurn();
+        }
+
+        function resetTruthOrDareTurn() {
+            document.getElementById('tod-choice-box').classList.remove('hidden');
+            document.getElementById('tod-result-box').classList.add('hidden');
+            document.getElementById('tod-answer-input').value = '';
+            removePhoto();
+        }
+
+        function previewPhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    base64Image = e.target.result;
+                    document.getElementById('photo-preview').src = base64Image;
+                    document.getElementById('photo-preview-container').classList.remove('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function removePhoto() {
+            base64Image = '';
+            document.getElementById('tod-photo-input').value = '';
+            document.getElementById('photo-preview-container').classList.add('hidden');
+        }
+
+        async function fetchTruthOrDare(type) {
+            currentChallengeType = type;
+            showLoading("Génération d'un défi par l'IA...");
+            
+            const fallbacks = {
+                verite: {
+                    chill: ["Quel est ton plus grand fou rire récent ?", "Quel personnage de fiction ressembles-tu le plus ?", "Quelle est ta plus grande phobie secrète ?"],
+                    hot: ["Quel est ton plus grand regret en amour ?", "As-tu déjà menti sur ton historique de recherche ?", "Quelle est la chose la plus folle que tu ferais par amour ?"]
+                },
+                action: {
+                    chill: ["Imite ta célébrité préférée pendant 10 secondes.", "Envoie le dernier emoji de ton clavier dans la discussion.", "Chante le refrain de ta chanson du moment."],
+                    hot: ["Envoie un message vocal en imitant un robot.", "Raconte ton secret le plus embarrassant du groupe.", "Prends en photo l'objet le plus insolite près de toi."]
+                }
+            };
+
+            try {
+                const prompt = `Génère un gage d'${type} en français pour un jeu entre amis. Niveau d'intensité : ${currentTodMode} (${currentTodMode === 'hot' ? 'corsé, osé, 16+' : 'léger, amusant, chill'}). Retourne un JSON strict : {"text": "Le texte du gage ou de la question"}`;
+                const res = await callGemini(prompt);
+                currentChallengeText = res.text;
+
+                document.getElementById('screen-loading').classList.add('hidden');
+                document.getElementById('screen-tod-play').classList.remove('hidden');
+                document.getElementById('tod-choice-box').classList.add('hidden');
+                document.getElementById('tod-result-box').classList.remove('hidden');
+
+                document.getElementById('tod-type-title').innerText = type === 'verite' ? '🧠 Vérité' : '⚡ Action';
+                document.getElementById('tod-prompt-text').innerText = currentChallengeText;
+            } catch (err) {
+                const list = fallbacks[type][currentTodMode];
+                currentChallengeText = list[Math.floor(Math.random() * list.length)];
+
+                document.getElementById('screen-loading').classList.add('hidden');
+                document.getElementById('screen-tod-play').classList.remove('hidden');
+                document.getElementById('tod-choice-box').classList.add('hidden');
+                document.getElementById('tod-result-box').classList.remove('hidden');
+
+                document.getElementById('tod-type-title').innerText = type === 'verite' ? '🧠 Vérité (Secours)' : '⚡ Action (Secours)';
+                document.getElementById('tod-prompt-text').innerText = currentChallengeText;
+            }
+        }
+
+        async function submitTodAnswer() {
+            const answerText = document.getElementById('tod-answer-input').value.trim();
+            if (!answerText && !base64Image) return alert("Écris une réponse ou prends une photo avant de valider !");
+
+            showLoading("Enregistrement de ta réponse...");
+            try {
+                await supabaseClient.from('room_submissions').insert([{
+                    room_code: currentRoomCode,
+                    pseudo: currentUser,
+                    challenge_type: currentChallengeType,
+                    challenge_text: currentChallengeText,
+                    answer_text: answerText || "(Photo transmise)",
+                    image_url: base64Image || null
+                }]);
+
+                document.getElementById('screen-loading').classList.add('hidden');
+                document.getElementById('screen-tod-play').classList.remove('hidden');
+                resetTruthOrDareTurn();
+            } catch (e) {
+                alert("Erreur lors de l'envoi : " + e.message);
+                document.getElementById('screen-loading').classList.add('hidden');
+                document.getElementById('screen-tod-play').classList.remove('hidden');
+            }
+        }
+
+        async function endTodGameSession() {
+            if (!confirm("Vux-tu terminer la partie et télécharger le récapitulatif ? (Les données de la salle seront ensuite supprimées)")) return;
+
+            showLoading("Génération du récapitulatif...");
+            try {
+                // Récupérer toutes les soumissions de la salle
+                const { data: submissions } = await supabaseClient.from('room_submissions').select('*').eq('room_code', currentRoomCode);
+
+                let recapContent = `=== RECAPITULATIF PARTIE ACTION OU VERITE (Salle: ${currentRoomCode}) ===\n\n`;
+                if (submissions && submissions.length > 0) {
+                    submissions.forEach((sub, i) => {
+                        recapContent += `${i+1}. Joueur :${sub.pseudo}\n`;
+                        recapContent += `   Type : ${sub.challenge_type.toUpperCase()}\n`;
+                        recapContent += `   Défi : ${sub.challenge_text}\n`;
+                        recapContent += `   Réponse : ${sub.answer_text}\n`;
+                        recapContent += `--------------------------------------------------\n`;
+                    });
+                } else {
+                    recapContent += `Aucune réponse enregistrée pour cette session.\n`;
+                }
+
+                // Création et téléchargement automatique du fichier .txt
+                const blob = new Blob([recapContent], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `recap-action-verite-${currentRoomCode}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                // Suppression des données de la base de données (Sécurité / Nettoyage)
+                await supabaseClient.from('room_submissions').delete().eq('room_code', currentRoomCode);
+                await supabaseClient.from('rooms').delete().eq('code', currentRoomCode);
+                await supabaseClient.from('room_players').delete().eq('room_code', currentRoomCode);
+
+                if (playersSubscription) supabaseClient.removeChannel(playersSubscription);
+                alert("Fichier de récap téléchargé ! La salle a été nettoyée de la base de données.");
+                showMenu();
+            } catch (e) {
+                alert("Erreur : " + e.message);
+                showMenu();
+            }
+        }
+
+        // --- AUTRES JEUX ---
         let quizQuestions = [], currentQuizIndex = 0, currentQuizScore = 0;
         async function startQuiz() {
             showLoading("Génération d'un quiz inédit par l'IA...");
@@ -268,9 +585,7 @@
                 document.getElementById('screen-loading').classList.add('hidden');
                 document.getElementById('screen-quiz').classList.remove('hidden');
                 loadQuizQuestion();
-            } catch (err) {
-                alert("Erreur : " + err.message); showMenu();
-            }
+            } catch (err) { alert("Erreur : " + err.message); showMenu(); }
         }
 
         function loadQuizQuestion() {
@@ -297,7 +612,6 @@
             });
         }
 
-        // --- 2. CALCUL FLASH ---
         let calculScore = 0, calculTimerInterval, timeLeft = 15, currentAnswer = 0;
         function startCalcul() {
             document.getElementById('screen-menu').classList.add('hidden');
@@ -324,8 +638,8 @@
             let n2 = Math.floor(Math.random() * 20) + 1;
             if (op === '-') { if (n1 < n2) [n1, n2] = [n2, n1]; }
             if (op === '*') { n1 = Math.floor(Math.random() * 10) + 1; n2 = Math.floor(Math.random() * 10) + 1; }
-            currentAnswer = eval(`${n1} ${op} ${n2}`);
-            document.getElementById('calcul-question').innerText = `${n1} ${op.replace('*', '×')} ${n2} = ?`;
+            currentAnswer = eval(`${n1} ${op}${n2}`);
+            document.getElementById('calcul-question').innerText = `${n1} ${op.replace('*', '×')}${n2} = ?`;
             document.getElementById('calcul-input').value = '';
             document.getElementById('calcul-input').focus();
         }
@@ -339,7 +653,6 @@
             nextCalcul();
         }
 
-        // --- 3. VRAI OU FAUX ---
         let tfList = [], tfIndex = 0, tfScore = 0;
         async function startTrueFalse() {
             showLoading("Génération des faits insolites...");
@@ -350,9 +663,7 @@
                 document.getElementById('screen-loading').classList.add('hidden');
                 document.getElementById('screen-tf').classList.remove('hidden');
                 loadTF();
-            } catch (err) {
-                alert("Erreur : " + err.message); showMenu();
-            }
+            } catch (err) { alert("Erreur : " + err.message); showMenu(); }
         }
 
         function loadTF() {
@@ -372,7 +683,6 @@
             tfIndex++; loadTF();
         }
 
-        // --- 4. NOMBRE MYSTÈRE ---
         let targetNumber = 0, nombreTries = 0;
         function startNombreMystere() {
             targetNumber = Math.floor(Math.random() * 100) + 1;
@@ -400,7 +710,6 @@
             document.getElementById('nombre-input').value = '';
         }
 
-        // --- 5. DÉFIB RÉFLEXES (TAP-TAP) ---
         let reflexTimer, startTime, clicksCount = 0;
         function startReflex() {
             document.getElementById('screen-menu').classList.add('hidden');
@@ -436,7 +745,6 @@
             }
         }
 
-        // --- 6. MOT MYSTÈRE ---
         let targetWord = "TABLE", currentAttempt = 0;
         async function startWordle() {
             showLoading("Recherche d'un mot mystère par l'IA...");
@@ -455,9 +763,7 @@
                     cell.className = "w-12 h-12 bg-slate-900 border border-slate-700 rounded-lg flex items-center justify-center text-xl font-bold uppercase";
                     board.appendChild(cell);
                 }
-            } catch (err) {
-                alert("Erreur : " + err.message); showMenu();
-            }
+            } catch (err) { alert("Erreur : " + err.message); showMenu(); }
         }
 
         function submitWordle() {
@@ -479,7 +785,6 @@
             input.value = '';
         }
 
-        // --- CLASSEMENTS SÉPARÉS PAR JEU ---
         async function showLeaderboard() {
             document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
             document.getElementById('screen-leaderboard').classList.remove('hidden');
@@ -492,9 +797,7 @@
             listContainer.innerHTML = '<p class="text-center text-slate-400">Chargement...</p>';
 
             try {
-                // Pour le tap-reflex, on trie par ordre croissant (le temps le plus petit en premier). Pour les autres, ordre décroissant (plus gros score).
                 const isAscending = (selectedGame === 'Réflexes (ms)');
-                
                 const { data, error } = await supabaseClient
                     .from('scores')
                     .select('*')
@@ -502,8 +805,7 @@
                     .order('score', { ascending: isAscending })
                     .limit(10);
 
-                listContainer.innerHTML = '';
-
+                listContainer.innerHTML = '`';
                 if (error || !data || data.length === 0) {
                     listContainer.innerHTML = '<p class="text-center text-slate-400">Aucun score pour ce jeu pour l\'instant.</p>';
                     return;
