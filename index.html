@@ -390,6 +390,7 @@
         function showMenu() {
             pianoGameRunning = false;
             stopTurnTimer();
+            if (playersSubscription) supabaseClient.removeChannel(playersSubscription);
             document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
             document.getElementById('screen-menu').classList.remove('hidden');
         }
@@ -414,7 +415,6 @@
             if (error) throw new Error(error.message);
             if (data.error) throw new Error(data.error.message);
             
-            // Si le contenu renvoyé est déjà un objet, on le retourne directement
             let partText = data.candidates[0].content.parts[0].text;
             if (typeof partText === 'object') return partText;
 
@@ -892,12 +892,19 @@
         }
 
         async function fetchPlayersInRoom() {
-            const { data } = await supabaseClient.from('room_players').select('pseudo').eq('room_code', currentRoomCode);
+            const { data } = await supabaseClient.from('room_players').select('*').eq('room_code', currentRoomCode);
             if (data) {
-                roomPlayersList = data.map(p => p.pseudo);
+                roomPlayersList = data.map(p => p.pseudo || p.name || Object.values(p)[1]);
                 document.getElementById('player-count').innerText = roomPlayersList.length;
+                
+                // Mise à jour de la salle d'attente
                 const container = document.getElementById('players-list-container');
-                container.innerHTML = roomPlayersList.map(p => `<div class="font-bold text-emerald-400">👤 ${p}</div>`).join('');
+                if (container) {
+                    container.innerHTML = roomPlayersList.map(p => `<div class="font-bold text-emerald-400">👤 ${p}</div>`).join('');
+                }
+
+                // Mise à jour si la partie a déjà commencé
+                updateLivePlayersUI();
             }
         }
 
@@ -911,11 +918,10 @@
         }
 
         async function startTodGameSession() {
-            if (roomPlayersList.length === 0) {
-                await fetchPlayersInRoom();
-            }
+            await fetchPlayersInRoom();
+            if (roomPlayersList.length === 0) roomPlayersList = [currentUser];
             
-            // Mélange aléatoire des joueurs pour que ce ne soit plus systématiquement le créateur en premier
+            // Mélange aléatoire des joueurs
             roomPlayersList.sort(() => Math.random() - 0.5);
 
             document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
@@ -936,7 +942,7 @@
 
         function updateLivePlayersUI() {
             const container = document.getElementById('live-room-players-list');
-            if (!container) return;
+            if (!container || roomPlayersList.length === 0) return;
             
             container.innerHTML = roomPlayersList.map(p => {
                 const isCurrent = (p === currentPlayerTurn);
