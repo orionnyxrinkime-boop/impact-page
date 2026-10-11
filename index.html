@@ -407,7 +407,6 @@
             } catch (e) { console.error("Erreur score", e); }
         }
 
-        // Appel de ta fonction Groq (generate-ai2) configurée sur Supabase
         async function callAI(promptText) {
             const { data, error } = await supabaseClient.functions.invoke('generate-ai2', {
                 body: { prompt: promptText }
@@ -421,7 +420,6 @@
             return JSON.parse(partText.replace(/```json/g, '').replace(/```/g, '').trim());
         }
 
-        // --- ENREGISTREMENT DU SERVICE WORKER (PWA) ---
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
                 .then(() => console.log("Service Worker enregistré avec succès !"))
@@ -892,18 +890,17 @@
         }
 
         async function fetchPlayersInRoom() {
-            const { data } = await supabaseClient.from('room_players').select('*').eq('room_code', currentRoomCode);
-            if (data) {
-                roomPlayersList = data.map(p => p.pseudo || p.name || Object.values(p)[1]);
+            const { data } = await supabaseClient.from('room_players').select('pseudo').eq('room_code', currentRoomCode);
+            if (data && data.length > 0) {
+                // Utilisation exclusive du champ 'pseudo' pour éviter les undefined
+                roomPlayersList = [...new Set(data.map(p => p.pseudo).filter(Boolean))];
                 document.getElementById('player-count').innerText = roomPlayersList.length;
                 
-                // Mise à jour de la salle d'attente
                 const container = document.getElementById('players-list-container');
                 if (container) {
                     container.innerHTML = roomPlayersList.map(p => `<div class="font-bold text-emerald-400">👤 ${p}</div>`).join('');
                 }
 
-                // Mise à jour si la partie a déjà commencé
                 updateLivePlayersUI();
             }
         }
@@ -921,7 +918,7 @@
             await fetchPlayersInRoom();
             if (roomPlayersList.length === 0) roomPlayersList = [currentUser];
             
-            // Mélange aléatoire des joueurs
+            // Mélange aléatoire unifié des joueurs
             roomPlayersList.sort(() => Math.random() - 0.5);
 
             document.querySelectorAll('[id^="screen-"]').forEach(el => el.classList.add('hidden'));
