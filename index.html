@@ -401,14 +401,18 @@
         }
 
         // Appel de ta fonction Groq (generate-ai2) configurée sur Supabase
-        async function callAI(promptText) {
+  async function callAI(promptText) {
             const { data, error } = await supabaseClient.functions.invoke('generate-ai2', {
                 body: { prompt: promptText }
             });
             if (error) throw new Error(error.message);
             if (data.error) throw new Error(data.error.message);
-            let rawText = data.candidates[0].content.parts[0].text;
-            return JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
+            
+            // Si le contenu renvoyé est déjà un objet, on le retourne directement
+            let partText = data.candidates[0].content.parts[0].text;
+            if (typeof partText === 'object') return partText;
+
+            return JSON.parse(partText.replace(/```json/g, '').replace(/```/g, '').trim());
         }
 
         // --- ENREGISTREMENT DU SERVICE WORKER (PWA) ---
